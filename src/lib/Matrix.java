@@ -31,6 +31,23 @@ public class Matrix {
 		return a;
 	}
 
+	public static double[] randomGaussian(int n, double mu, double sigma) {
+		double[] a = new double[n];
+		for (int j = 0; j < n; j++) {
+			a[j] = StdRandom.gaussian(mu, sigma);
+		}
+		return a;
+	}
+
+	// return a random m-by-n matrix with values between 0 and 1
+	public static double[][] randomGaussian(int m, int n, double mu, double sigma) {
+		double[][] a = new double[m][n];
+		for (int i = 0; i < m; i++)
+			for (int j = 0; j < n; j++)
+				a[i][j] = StdRandom.gaussian(mu, sigma);
+		return a;
+	}
+
 	// return n-by-n identity matrix I
 	public static double[][] identity(int n) {
 		double[][] a = new double[n][n];

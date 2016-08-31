@@ -19,22 +19,58 @@ public class Network {
 	public double[][][] weights; // weights[layer][neuron][neuron-from-prev-layer]
 	public int[] topology;       // {num input units, hidden layers..., num output layer units]
 
-	public Network(int ...topology) {
+	public Network(double mu, double sigma, int ...topology) { // init with N(mu,sigma)
 		this.topology = topology;
 		biases = new double[topology.length-1][];
 		weights = new double[topology.length-1][][];
-		// init parameters with U(0,1)
+		// init parameters with N(mu,sigma)
+		for (int i = 1; i<topology.length; i++) {
+			biases[i-1] = Matrix.randomGaussian(topology[i], mu, sigma);
+			weights[i-1] = Matrix.randomGaussian(topology[i], topology[i-1], mu, sigma);
+		}
+	}
+
+	public Network(int ...topology) { // init with U(0,1)
+		this.topology = topology;
+		biases = new double[topology.length-1][];
+		weights = new double[topology.length-1][][];
 		for (int i = 1; i<topology.length; i++) {
 			biases[i-1] = Matrix.random(topology[i]);
 			weights[i-1] = Matrix.random(topology[i], topology[i-1]);
 		}
 	}
 
-	public double[] feedforward(double[] activations) {
+	public int size() {
+		int n = 0;
 		for (int i = 1; i<topology.length; i++) {
-			double[] b = biases[i];
+			n += topology[i]; // biases
+			n += topology[i] * topology[i-1]; // weights
+		}
+		return n;
+	}
+
+	/** Pack all data together into a linear vector */
+	public double[] asVector() {
+		double[] v = new double[size()];
+		int k = 0;
+		for (int i = 1; i<topology.length; i++) {
+			for (int j = 0; j<biases[i-1].length; j++) {
+				v[k++] = biases[i-1][j];
+			}
+			for (int j = 0; j<weights[i-1].length; j++) {
+				for (int jj = 0; jj<weights[i-1][j].length; jj++) {
+					v[k++] = weights[i-1][j][jj];
+				}
+			}
+		}
+		return v;
+	}
+
+	public double[] feedforward(double[] activations) {
+		for (int i = 0; i<weights.length; i++) {
 			double[][] w = weights[i];
-			activations = reLU( Matrix.multiply(w, b) );
+			double[] output = Vec.add(Matrix.multiply(w, activations), biases[i]);
+			activations = reLU(output);
 		}
 		return activations;
 	}
@@ -78,9 +114,8 @@ public class Network {
 	}
 
 	public double[] softmax(double[] data) {
-		DoubleStream dataStream = stream(data).map(x -> Math.exp(x));
-		double sum = dataStream.sum();
-		return dataStream.map(x -> x / sum).toArray();
+		double sum = stream(data).map(x -> Math.exp(x)).sum();
+		return stream(data).map(x -> x / sum).toArray();
 	}
 
 	public static <T, R> List<R> map(T[] data, Function<T, R> getter) {
