@@ -33,13 +33,15 @@ public class Main {
 	}
 
 	public static void walk(List<Image> training) {
+		double w = 0.729844;
+		double c1 = 1.49618, c2 = 1.49618;
+
 		// init all particles
 		Particle[] particles = new Particle[NUM_PARTICLES];
 		int max = -1;
 		int maxi = -0;
 		for (int j = 0; j<NUM_PARTICLES; j++) {
 			Network net = new Network(784, 15, 10);
-			System.out.println(Arrays.toString(net.asVector()));
 			int correct = net.fitness(X, labels);
 			particles[j] = new Particle(net,correct);
 			if ( correct>max ) {
@@ -53,6 +55,8 @@ public class Main {
 		System.out.println("gbest index is "+maxi+": "+gbest.bestScore);
 
 		for (int i = 0; i<NUM_ITERATIONS; i++) {
+			// v(t+1) = w*v(t) + c1*r1*(pBest(t) - x(t)) + c2*r2*(gBest(t) - x(t))
+			// x(t+1) = x(t) + v(t+1)
 			Network mu = gbest.best;
 			double sigma = 1.0;
 			for (int j = 0; j<NUM_PARTICLES; j++) {

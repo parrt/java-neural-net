@@ -19,7 +19,7 @@ public class Network {
 	public double[][][] weights; // weights[layer][neuron][neuron-from-prev-layer]
 	public int[] topology;       // {num input units, hidden layers..., num output layer units]
 
-	public Network(double mu, double sigma, int ...topology) { // init with N(mu,sigma)
+	public Network(double[] mu, double[] sigma, int ...topology) { // init with N(mu,sigma)
 		this.topology = topology;
 		biases = new double[topology.length-1][];
 		weights = new double[topology.length-1][][];
