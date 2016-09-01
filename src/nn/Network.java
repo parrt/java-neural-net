@@ -1,26 +1,24 @@
 package nn;
 
 import lib.Matrix;
-import org.ejml.simple.SimpleMatrix;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.DoubleStream;
-
-import static java.util.Arrays.stream;
-import static javafx.scene.input.KeyCode.R;
-import static org.apache.commons.lang3.ArrayUtils.toArray;
-import static sun.management.snmp.jvminstr.JvmThreadInstanceEntryImpl.ThreadStateMap.Byte1.other;
 
 public class Network {
 	public double[][] biases;    // biases[layer][neuron]
 	public double[][][] weights; // weights[layer][neuron][neuron-from-prev-layer]
 	public int[] topology;       // {num input units, hidden layers..., num output layer units]
 
-	public Network() {
+	public Network(int ...topology) {
+		this.topology = topology;
+		biases = new double[topology.length-1][];
+		weights = new double[topology.length-1][][];
+		for (int i = 1; i<topology.length; i++) {
+			biases[i-1] = new double[topology[i]];
+			weights[i-1] = new double[topology[i]][topology[i-1]];
+		}
 	}
 
 	public Network(Network mu, Network sigma, int ...topology) { // init with N(mu,sigma)
@@ -34,14 +32,23 @@ public class Network {
 		}
 	}
 
-	public Network(int ...topology) { // init with U(0,1)
+	public Network(double mu, double sigma, int ...topology) { // init with U(mu, sigma)
 		this.topology = topology;
 		biases = new double[topology.length-1][];
 		weights = new double[topology.length-1][][];
 		for (int i = 1; i<topology.length; i++) {
-			biases[i-1] = Matrix.random(topology[i]);
-			weights[i-1] = Matrix.random(topology[i], topology[i-1]);
+			biases[i-1] = Matrix.randomGaussian(topology[i], mu, sigma);
+			weights[i-1] = Matrix.randomGaussian(topology[i], topology[i-1], mu, sigma);
 		}
+	}
+
+	public static Network ones(int ...topology) {
+		Network n = new Network(topology);
+		for (int i = 1; i<topology.length; i++) {
+			n.biases[i-1] = Vec.ones(topology[i]);
+			n.weights[i-1] = Matrix.ones(topology[i], topology[i-1]);
+		}
+		return n;
 	}
 
 	public int size() {
@@ -57,13 +64,13 @@ public class Network {
 	public double[] asVector() {
 		double[] v = new double[size()];
 		int k = 0;
-		for (int i = 1; i<topology.length; i++) {
-			for (int j = 0; j<biases[i-1].length; j++) {
-				v[k++] = biases[i-1][j];
+		for (int i = 0; i<topology.length-1; i++) {
+			for (int j = 0; j<biases[i].length; j++) {
+				v[k++] = biases[i][j];
 			}
-			for (int j = 0; j<weights[i-1].length; j++) {
-				for (int jj = 0; jj<weights[i-1][j].length; jj++) {
-					v[k++] = weights[i-1][j][jj];
+			for (int j = 0; j<weights[i].length; j++) {
+				for (int jj = 0; jj<weights[i][j].length; jj++) {
+					v[k++] = weights[i][j][jj];
 				}
 			}
 		}
@@ -71,9 +78,9 @@ public class Network {
 	}
 
 	public Network abs() {
-		Network r = new Network();
+		Network r = new Network(this.topology);
 		r.topology = this.topology;
-		for (int i = 1; i<topology.length; i++) {
+		for (int i = 0; i<topology.length-1; i++) {
 			r.biases[i] = Vec.abs(this.biases[i]);
 			r.weights[i] = Matrix.abs(this.weights[i]);
 		}
@@ -81,9 +88,9 @@ public class Network {
 	}
 
 	public Network scale(double v) {
-		Network r = new Network();
+		Network r = new Network(this.topology);
 		r.topology = this.topology;
-		for (int i = 1; i<topology.length; i++) {
+		for (int i = 0; i<topology.length-1; i++) {
 			r.biases[i] = Vec.scale(this.biases[i], v);
 			r.weights[i] = Matrix.multiply(this.weights[i], v);
 		}
@@ -91,9 +98,9 @@ public class Network {
 	}
 
 	public Network add(Network other) {
-		Network r = new Network();
+		Network r = new Network(this.topology);
 		r.topology = this.topology;
-		for (int i = 1; i<topology.length; i++) {
+		for (int i = 0; i<topology.length-1; i++) {
 			r.biases[i] = Vec.add(this.biases[i], other.biases[i]);
 			r.weights[i] = Matrix.add(this.weights[i], other.weights[i]);
 		}
@@ -101,9 +108,9 @@ public class Network {
 	}
 
 	public Network subtract(Network other) {
-		Network r = new Network();
+		Network r = new Network(this.topology);
 		r.topology = this.topology;
-		for (int i = 1; i<topology.length; i++) {
+		for (int i = 0; i<topology.length-1; i++) {
 			r.biases[i] = Vec.subtract(this.biases[i], other.biases[i]);
 			r.weights[i] = Matrix.subtract(this.weights[i], other.weights[i]);
 		}
@@ -111,26 +118,38 @@ public class Network {
 	}
 
 	public double[] feedforward(double[] activations) {
-		for (int i = 0; i<weights.length; i++) {
-			double[][] w = weights[i];
-			double[] output = Vec.add(Matrix.multiply(w, activations), biases[i]);
+		for (int layer = 0; layer<topology.length-1; layer++) {
+			double[][] w = weights[layer];
+			double[] output = Vec.add(Matrix.multiply(w, activations), biases[layer]);
 			activations = reLU(output);
 		}
 		return activations;
 	}
 
-	public int fitness(double[][] X, double[] labels) {
+	public int fitness(double[][] X, int[] labels) {
 		int correct = 0;
 		for (int i = 0; i<X.length; i++) {
 			double[] x = X[i];
-			double y = labels[i];
-			double[] y_ = feedforward(x);
-			int predicted = argmax(softmax(y_));
-			if ( predicted==y ) {
+			double[] output = feedforward(x);
+			int predicted = argmax(softmax(output));
+			if ( predicted==labels[i] ) {
 				correct++;
 			}
 		}
 		return correct;
+	}
+
+	public double cost(double[][] X, double[][] onehots) {
+		double c = 0.0;
+		for (int i = 0; i<X.length; i++) {
+			double[] x = X[i];
+			double[] output = feedforward(x);
+			double[] activations = softmax(output);
+			double[] diff = Vec.subtract(activations, onehots[i]);
+			double norm = Vec.norm(diff);
+			c += norm * norm;
+		}
+		return c;
 	}
 
 	public double reLU(double v) {
@@ -157,9 +176,17 @@ public class Network {
 		return maxi;
 	}
 
-	public double[] softmax(double[] data) {
-		double sum = stream(data).map(x -> Math.exp(x)).sum();
-		return stream(data).map(x -> x / sum).toArray();
+	public double[] softmax(double[] x) {
+		double[] r = new double[x.length];
+		double s = Vec.sum(Vec.exp(x));
+		for (int i = 0; i<x.length; i++) {
+			r[i] = Math.exp(x[i]) / s;
+			if ( Double.isNaN(r[i]) ) {
+				r[i] = 1.0;
+//				System.out.println("NAN!!!!!!!!!!!");
+			}
+		}
+		return r;
 	}
 
 	public static <T, R> List<R> map(T[] data, Function<T, R> getter) {

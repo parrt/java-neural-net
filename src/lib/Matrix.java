@@ -1,7 +1,5 @@
 package lib;
 
-import java.util.Arrays;
-
 /******************************************************************************
  *  Compilation:  javac Matrix.java
  *  Execution:    java Matrix
@@ -14,20 +12,20 @@ import java.util.Arrays;
  ******************************************************************************/
 
 public class Matrix {
-	public static double[] random(int n) {
+	public static double[] random(int n, double mu, double sigma) {
 		double[] a = new double[n];
 		for (int j = 0; j < n; j++) {
-			a[j] = StdRandom.uniform(0.0, 1.0);
+			a[j] = StdRandom.uniform(mu, sigma);
 		}
 		return a;
 	}
 
 	// return a random m-by-n matrix with values between 0 and 1
-	public static double[][] random(int m, int n) {
+	public static double[][] random(int m, int n, double mu, double sigma) {
 		double[][] a = new double[m][n];
 		for (int i = 0; i < m; i++)
 			for (int j = 0; j < n; j++)
-				a[i][j] = StdRandom.uniform(0.0, 1.0);
+				a[i][j] = StdRandom.uniform(mu, sigma);
 		return a;
 	}
 
@@ -39,12 +37,30 @@ public class Matrix {
 		return a;
 	}
 
+	public static double[] randomGaussian(int n, double mu, double sigma) {
+		double[] a = new double[n];
+		for (int j = 0; j < n; j++) {
+			a[j] = StdRandom.gaussian(mu, sigma);
+		}
+		return a;
+	}
+
 	// return a random m-by-n matrix with values between 0 and 1
-	public static double[][] randomGaussian(int m, int n, double[] mu, double[] sigma) {
+	public static double[][] randomGaussian(int m, int n, double[][] mu, double[][] sigma) {
 		double[][] a = new double[m][n];
 		for (int i = 0; i < m; i++) {
 			for (int j = 0; j<n; j++) {
-				a[i][j] = StdRandom.gaussian(mu[j], sigma[j]);
+				a[i][j] = StdRandom.gaussian(mu[i][j], sigma[i][j]);
+			}
+		}
+		return a;
+	}
+
+	public static double[][] randomGaussian(int m, int n, double mu, double sigma) {
+		double[][] a = new double[m][n];
+		for (int i = 0; i < m; i++) {
+			for (int j = 0; j<n; j++) {
+				a[i][j] = StdRandom.gaussian(mu, sigma);
 			}
 		}
 		return a;
@@ -55,6 +71,16 @@ public class Matrix {
 		double[][] a = new double[n][n];
 		for (int i = 0; i < n; i++)
 			a[i][i] = 1;
+		return a;
+	}
+
+	public static double[][] ones(int m, int n) {
+		double[][] a = new double[m][n];
+		for (int i = 0; i < m; i++) {
+			for (int j = 0; j<n; j++) {
+				a[i][j] = 1;
+			}
+		}
 		return a;
 	}
 
@@ -179,7 +205,7 @@ public class Matrix {
 
 		System.out.println("A");
 		System.out.println("--------------------");
-		double[][] a = Matrix.random(5, 5);
+		double[][] a = Matrix.random(5, 5, 0, 1);
 		StdArrayIO.print(a);
 		System.out.println();
 
@@ -195,10 +221,22 @@ public class Matrix {
 		StdArrayIO.print(e);
 		System.out.println();
 
-		System.out.println("A * A^T");
+		System.out.println("D * 0.5");
 		System.out.println("--------------------");
-		double[][] f = Matrix.multiply(a, b);
+		double[][] f = Matrix.multiply(d, 0.5);
 		StdArrayIO.print(f);
+		System.out.println();
+
+		System.out.println("D * -1");
+		System.out.println("--------------------");
+		f = Matrix.multiply(d, -1);
+		StdArrayIO.print(f);
+		System.out.println();
+
+		System.out.println("abs(D * -1)");
+		System.out.println("--------------------");
+		double[][] abs = Matrix.abs(Matrix.multiply(d, -1));
+		StdArrayIO.print(abs);
 		System.out.println();
 	}
 }

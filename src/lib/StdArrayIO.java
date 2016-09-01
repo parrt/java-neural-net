@@ -44,8 +44,6 @@
  ******************************************************************************/
 package lib;
 
-import com.sun.tools.doclets.formats.html.resources.standard;
-
 /**
  *  <i>Standard array IO</i>. This class provides methods for reading
  *  in 1D and 2D arrays from standard input and printing out to
@@ -72,7 +70,6 @@ public class StdArrayIO {
      */
     public static void print(double[] a) {
         int n = a.length;
-        System.out.println(n);
         for (int i = 0; i < n; i++) {
             System.out.printf("%9.5f ", a[i]);
         }
@@ -88,7 +85,6 @@ public class StdArrayIO {
     public static void print(double[][] a) {
         int m = a.length;
         int n = a[0].length;
-        System.out.println(m + " " + n);
         for (int i = 0; i < m; i++) {
             for (int j = 0; j < n; j++) {
                 System.out.printf("%9.5f ", a[i][j]);
