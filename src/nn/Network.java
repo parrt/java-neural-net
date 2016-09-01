@@ -29,8 +29,8 @@ public class Network {
 		weights = new double[topology.length-1][][];
 		// init parameters with N(mu,sigma)
 		for (int i = 1; i<topology.length; i++) {
-			biases[i-1] = Matrix.randomGaussian(topology[i], mu, sigma);
-			weights[i-1] = Matrix.randomGaussian(topology[i], topology[i-1], mu, sigma);
+			biases[i-1] = Matrix.randomGaussian(topology[i], mu.biases[i-1], sigma.biases[i-1]);
+			weights[i-1] = Matrix.randomGaussian(topology[i], topology[i-1], mu.weights[i-1], sigma.weights[i-1]);
 		}
 	}
 
