@@ -61,6 +61,14 @@ public class Vec {
 		return r;
 	}
 
+	public static double[] add(double[] x, double y) {
+		double[] r = new double[x.length];
+		for (int i = 0; i<x.length; i++) {
+			r[i] = x[i] + y;
+		}
+		return r;
+	}
+
 	public static double[] subtract(double[] x, double[] y) {
 		if ( x.length!=y.length ) {
 			throw new IllegalArgumentException("diff vec lens");

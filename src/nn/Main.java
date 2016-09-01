@@ -21,7 +21,7 @@ public class Main {
 //		List<Image> testing = MNISTLoader.loadTestingImages("/Users/parrt/data/mnist");
 //		System.out.printf("Loaded %d testing images\n", testing.size());
 
-		training = training.subList(0,1000);
+		training = training.subList(0, 20);
 		System.out.printf("Using %d images\n", training.size());
 
 		X = new double[training.size()][];
@@ -35,6 +35,42 @@ public class Main {
 		}
 //		bareBonesParticleSwarmOptimizer(training);
 		slightlyGuidedRandomSearchOptimizer(training);
+//		gradientDescentFiniteDifference(training);
+	}
+
+	/**
+	 * Use a simple gradient descent approach to find weights
+	 */
+	public static void gradientDescentFiniteDifference(List<Image> training) {
+	/*
+	LEARNING_RATE = 10
+	h = 0.0001
+	PRECISION = 0.0000001 # can't be too small as f(x)-f(xprev) prec is low
+	def f(x): return np.cos(3*np.pi*x) / x
+	x0s = [runif_(.1,1.2), runif_(.1,1.2)] # random starting positions
+	tracex = minimize(f, x0s[0], LEARNING_RATE, h, PRECISION)
+	 */
+		/*
+		double h = 0.00001;
+		Network prev_pos = null;
+		Network p = new Network(0.0, 1.0, IMAGE_LEN, HIDDEN_LAYER_LEN, OUTPUT_LAYER_LEN);
+		while ( true ) {
+			prev_pos = p;
+			double[] finite_diff = Vec.subtract(Vec.add(p, +h), Vec.add(p, -h));
+			+  p.cost(X,onehots)
+
+				f.apply(vector_scalar_add(x, h))-f.apply(x);    // division by h rolls into learning rate
+			p = vector_scalar_sub(x, eta*finite_diff);                        // decelerates x jump as it flattens out
+			// print "f(%1.12f) = %1.12f" % (x, f(x)),
+			double delta = f.apply(x)-f.apply(prev_x);
+			// print ", delta = %1.20f" % delta
+			// stop when small change in vertical but not heading down
+			if ( delta>=0 && Math.abs(delta)<precision ) {
+				break;
+			}
+		}
+		return x;
+		*/
 	}
 
 	public static void bareBonesParticleSwarmOptimizer(List<Image> training) {
@@ -48,14 +84,14 @@ public class Main {
 		for (int j = 0; j<NUM_PARTICLES; j++) {
 			Network net = new Network(0.0, 1.0, IMAGE_LEN, HIDDEN_LAYER_LEN, OUTPUT_LAYER_LEN);
 			double cost = net.cost(X, onehots);
-			particles[j] = new Particle(net,cost);
-			if ( cost < min ) {
+			particles[j] = new Particle(net, cost);
+			if ( cost<min ) {
 				min = cost;
 				mini = j;
 			}
 			int correct = net.fitness(X, labels);
 			System.out.printf("%d: cost %3.3f, num correct %d %2.2f%%\n",
-			                  j, cost, correct, 100*correct/(float)training.size());
+			                  j, cost, correct, 100*correct/(float) training.size());
 		}
 
 		Particle global = particles[mini];
@@ -74,26 +110,26 @@ public class Main {
 				double cost = p.position.cost(X, onehots);
 				int correct = p.position.fitness(X, labels);
 				System.out.printf("%d: cost=%3.2f, num correct %d %2.2f%%\n",
-				                  j, cost, correct, 100*correct/(float)training.size());
+				                  j, cost, correct, 100*correct/(float) training.size());
 				// Update this particle's best
-				if ( cost < p.lowestCost ) {
+				if ( cost<p.lowestCost ) {
 					p.best = p.position;
 					p.lowestCost = cost;
 				}
-				if ( cost < genLowestCost ) {
+				if ( cost<genLowestCost ) {
 					genLowestCost = cost;
 					genBest = p.position;
 				}
 //				System.out.println(p.position);
 			}
 			// Update best global particle
-			if ( genLowestCost < global.lowestCost ) {
+			if ( genLowestCost<global.lowestCost ) {
 				global.best = genBest;
 				global.lowestCost = genLowestCost;
 			}
 			int correct = global.best.fitness(X, labels);
 			System.out.printf("global cost %3.2f, num correct %d %2.2f%%\n",
-			                  global.lowestCost, correct, 100*correct/(float)training.size());
+			                  global.lowestCost, correct, 100*correct/(float) training.size());
 		}
 	}
 
@@ -117,26 +153,26 @@ public class Main {
 				double cost = pos.cost(X, onehots);
 				int correct = pos.fitness(X, labels);
 				System.out.printf("%d: cost=%3.2f, num correct %d %2.2f%%\n",
-				                  j, cost, correct, 100*correct/(float)training.size());
-				if ( cost < genLowestCost ) {
+				                  j, cost, correct, 100*correct/(float) training.size());
+				if ( cost<genLowestCost ) {
 					genBest = pos;
 					genLowestCost = cost;
 				}
 			}
 			System.out.printf("gen lowest cost %3.2f\n", genLowestCost);
 			// Update best global particle
-			if ( genLowestCost < globalLowestCost ) {
+			if ( genLowestCost<globalLowestCost ) {
 				// only move center if we have improved with this gen
 				Network delta = genBest.subtract(globalBest);
 //				mu = globalBest.add(delta.scale(learningRate));
 				mu = genBest;
-//				sigma = delta.abs();
+				sigma = delta.abs();
 				globalBest = genBest;
 				globalLowestCost = genLowestCost;
 			}
 			int correct = globalBest.fitness(X, labels);
 			System.out.printf("global lowest cost %3.2f, num correct %d %2.2f%%\n",
-			                  globalLowestCost, correct, 100*correct/(float)training.size());
+			                  globalLowestCost, correct, 100*correct/(float) training.size());
 		}
 	}
 }
