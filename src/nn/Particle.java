@@ -6,12 +6,12 @@ public class Particle {
 	public Network position;
 	public double velocity;
 	public Network best;
-	public double bestScore;
+	public double lowestCost;
 
-	public Particle(Network position, double bestScore) {
+	public Particle(Network position, double lowestCost) {
 		this.position = position;
 		this.best = position;
-		this.bestScore = bestScore;
+		this.lowestCost = lowestCost;
 		this.velocity = StdRandom.uniform();
 	}
 }

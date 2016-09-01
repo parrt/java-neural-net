@@ -33,8 +33,8 @@ public class Main {
 			onehots[i] = new double[OUTPUT_LAYER_LEN];
 			onehots[i][labels[i]] = 1.0;
 		}
-//		bareBonesParticleSwarmOptimizer(training);
-		slightlyGuidedRandomSearchOptimizer(training);
+		bareBonesParticleSwarmOptimizer(training);
+//		slightlyGuidedRandomSearchOptimizer(training);
 	}
 
 	public static void bareBonesParticleSwarmOptimizer(List<Image> training) {
@@ -43,46 +43,57 @@ public class Main {
 
 		// init all particles
 		Particle[] particles = new Particle[NUM_PARTICLES];
-		int max = -1;
-		int maxi = -0;
+		double min = Double.MAX_VALUE;
+		int mini = -0;
 		for (int j = 0; j<NUM_PARTICLES; j++) {
 			Network net = new Network(0.0, 1.0, IMAGE_LEN, HIDDEN_LAYER_LEN, OUTPUT_LAYER_LEN);
-			int correct = net.fitness(X, labels);
-			particles[j] = new Particle(net,correct);
-			if ( correct>max ) {
-				max = correct;
-				maxi = j;
+			double cost = net.cost(X, onehots);
+			particles[j] = new Particle(net,cost);
+			if ( cost < min ) {
+				min = cost;
+				mini = j;
 			}
-			System.out.printf(j+": num correct %d %2.2f%%\n", correct, 100*correct/(float)training.size());
+			int correct = net.fitness(X, labels);
+			System.out.printf("%d: cost %3.3f, num correct %d %2.2f%%\n",
+			                  j, cost, correct, 100*correct/(float)training.size());
 		}
 
-		Particle global = particles[maxi];
-		System.out.println("gbest index is "+maxi+": "+global.bestScore);
+		Particle global = particles[mini];
+		System.out.println("gbest index is "+mini+": "+global.lowestCost);
 
 		for (int i = 0; i<NUM_ITERATIONS; i++) {
 			System.out.println("ITERATION "+i);
+			Network genBest = null;
+			double genLowestCost = Double.MAX_VALUE;
 			for (int j = 0; j<NUM_PARTICLES; j++) {
 				Particle p = particles[j];
 				Network mu = (p.best.add(global.best)).scale(0.5);
-				Network sigma = (p.best.subtract(global.best)).abs();
+//				Network sigma = (p.best.subtract(global.best)).abs();
+				Network sigma = Network.ones(784, 15, 10).scale(1.0);
 				p.position = new Network(mu, sigma, 784, 15, 10);
+				double cost = p.position.cost(X, onehots);
 				int correct = p.position.fitness(X, labels);
-				System.out.printf(j+": num correct %d %2.2f%%\n",
-				                  correct, 100*correct/(float)training.size());
-				// Update best global particle
-				if ( correct > global.bestScore ) {
-					global.best = p.position;
-					global.bestScore = correct;
-				}
+				System.out.printf("%d: cost=%3.2f, num correct %d %2.2f%%\n",
+				                  j, cost, correct, 100*correct/(float)training.size());
 				// Update this particle's best
-				if ( correct > p.bestScore ) {
+				if ( cost < p.lowestCost ) {
 					p.best = p.position;
-					p.bestScore = correct;
+					p.lowestCost = cost;
+				}
+				if ( cost < genLowestCost ) {
+					genLowestCost = cost;
+					genBest = p.position;
 				}
 //				System.out.println(p.position);
 			}
-			System.out.printf("global num correct %d %2.2f%%\n",
-			                  (int)global.bestScore, 100*global.bestScore/(float)training.size());
+			// Update best global particle
+			if ( genLowestCost < global.lowestCost ) {
+				global.best = genBest;
+				global.lowestCost = genLowestCost;
+			}
+			int correct = global.best.fitness(X, labels);
+			System.out.printf("global cost %3.2f, num correct %d %2.2f%%\n",
+			                  global.lowestCost, correct, 100*correct/(float)training.size());
 		}
 	}
 
