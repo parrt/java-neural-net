@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 public class Main {
-	public static final int NUM_PARTICLES = 10;
+	public static final int NUM_PARTICLES = 20;
 	public static final int NUM_ITERATIONS = 100;
 
 	public static final int IMAGE_LEN = 784;
@@ -87,46 +87,22 @@ public class Main {
 	}
 
 	public static void slightlyGuidedRandomSearchOptimizer(List<Image> training) {
-//		// init all particles with uniform random values and then pick best from that initial batch
-//		Particle[] particles = new Particle[NUM_PARTICLES];
-//		int max = -1;
-//		int maxi = -0;
-//		for (int j = 0; j<NUM_PARTICLES; j++) {
-//			Network net = new Network(0.0, 1.0, 784, 15, 10);
-//			int correct = net.fitness(X, labels);
-//			particles[j] = new Particle(net,correct);
-//			if ( correct>max ) {
-//				max = correct;
-//				maxi = j;
-//			}
-//			System.out.printf(j+": num correct %d %2.2f%%\n", correct, 100*correct/(float)training.size());
-//		}
-//
-//		Particle global = particles[maxi];
-//		System.out.println("gbest index is "+maxi+": "+global.bestScore);
-
-		Network globalBest = null; //global.best;
-		double globalLowestCost = Float.MAX_VALUE; //(int)global.bestScore;
-		Network mu = null;
-//		Network sigma = null;
+		Network globalBest = new Network(0.0, 1.0, 784, 15, 10);
+		double globalLowestCost = globalBest.cost(X, onehots);
+		Network mu = globalBest;
 		Network sigma = Network.ones(784, 15, 10).scale(1.0);
 
-		double learningRate = 1.0;
+		double learningRate = 2.0;
 
 		for (int i = 0; i<NUM_ITERATIONS; i++) {
 			System.out.println("ITERATION "+i);
 			// find the best location in a generation
 
-			Network genBest = null;
+			Network genBest = new Network(0.0, 1.0, 784, 15, 10);
+
 			double genLowestCost = Float.MAX_VALUE;
 			for (int j = 0; j<NUM_PARTICLES; j++) {
-				Network pos;
-				if ( mu==null ) {
-					pos = new Network(0.0, 1.0, 784, 15, 10);
-				}
-				else {
-					pos = new Network(mu, sigma, 784, 15, 10);
-				}
+				Network pos = new Network(mu, sigma, 784, 15, 10);
 				double cost = pos.cost(X, onehots);
 				int correct = pos.fitness(X, labels);
 				System.out.printf("%d: cost=%3.2f, num correct %d %2.2f%%\n",
@@ -139,13 +115,13 @@ public class Main {
 			System.out.printf("gen lowest cost %3.2f\n", genLowestCost);
 			// Update best global particle
 			if ( genLowestCost < globalLowestCost ) {
-				globalBest = genBest;
-				globalLowestCost = genLowestCost;
 				// only move center if we have improved with this gen
-//				Network delta = genBest.subtract(globalBest);
+				Network delta = genBest.subtract(globalBest);
 //				mu = globalBest.add(delta.scale(learningRate));
 				mu = genBest;
-//				sigma = delta.abs();
+				sigma = delta.abs();
+				globalBest = genBest;
+				globalLowestCost = genLowestCost;
 			}
 			int correct = globalBest.fitness(X, labels);
 			System.out.printf("global lowest cost %3.2f, num correct %d %2.2f%%\n",
