@@ -33,8 +33,8 @@ public class Main {
 			onehots[i] = new double[OUTPUT_LAYER_LEN];
 			onehots[i][labels[i]] = 1.0;
 		}
-		bareBonesParticleSwarmOptimizer(training);
-//		slightlyGuidedRandomSearchOptimizer(training);
+//		bareBonesParticleSwarmOptimizer(training);
+		slightlyGuidedRandomSearchOptimizer(training);
 	}
 
 	public static void bareBonesParticleSwarmOptimizer(List<Image> training) {
@@ -130,7 +130,7 @@ public class Main {
 				Network delta = genBest.subtract(globalBest);
 //				mu = globalBest.add(delta.scale(learningRate));
 				mu = genBest;
-				sigma = delta.abs();
+//				sigma = delta.abs();
 				globalBest = genBest;
 				globalLowestCost = genLowestCost;
 			}
