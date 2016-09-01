@@ -13,13 +13,17 @@ import java.util.stream.DoubleStream;
 import static java.util.Arrays.stream;
 import static javafx.scene.input.KeyCode.R;
 import static org.apache.commons.lang3.ArrayUtils.toArray;
+import static sun.management.snmp.jvminstr.JvmThreadInstanceEntryImpl.ThreadStateMap.Byte1.other;
 
 public class Network {
 	public double[][] biases;    // biases[layer][neuron]
 	public double[][][] weights; // weights[layer][neuron][neuron-from-prev-layer]
 	public int[] topology;       // {num input units, hidden layers..., num output layer units]
 
-	public Network(double[] mu, double[] sigma, int ...topology) { // init with N(mu,sigma)
+	public Network() {
+	}
+
+	public Network(Network mu, Network sigma, int ...topology) { // init with N(mu,sigma)
 		this.topology = topology;
 		biases = new double[topology.length-1][];
 		weights = new double[topology.length-1][][];
@@ -64,6 +68,46 @@ public class Network {
 			}
 		}
 		return v;
+	}
+
+	public Network abs() {
+		Network r = new Network();
+		r.topology = this.topology;
+		for (int i = 1; i<topology.length; i++) {
+			r.biases[i] = Vec.abs(this.biases[i]);
+			r.weights[i] = Matrix.abs(this.weights[i]);
+		}
+		return r;
+	}
+
+	public Network scale(double v) {
+		Network r = new Network();
+		r.topology = this.topology;
+		for (int i = 1; i<topology.length; i++) {
+			r.biases[i] = Vec.scale(this.biases[i], v);
+			r.weights[i] = Matrix.multiply(this.weights[i], v);
+		}
+		return r;
+	}
+
+	public Network add(Network other) {
+		Network r = new Network();
+		r.topology = this.topology;
+		for (int i = 1; i<topology.length; i++) {
+			r.biases[i] = Vec.add(this.biases[i], other.biases[i]);
+			r.weights[i] = Matrix.add(this.weights[i], other.weights[i]);
+		}
+		return r;
+	}
+
+	public Network subtract(Network other) {
+		Network r = new Network();
+		r.topology = this.topology;
+		for (int i = 1; i<topology.length; i++) {
+			r.biases[i] = Vec.subtract(this.biases[i], other.biases[i]);
+			r.weights[i] = Matrix.subtract(this.weights[i], other.weights[i]);
+		}
+		return r;
 	}
 
 	public double[] feedforward(double[] activations) {

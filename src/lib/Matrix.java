@@ -127,6 +127,29 @@ public class Matrix {
 		return y;
 	}
 
+	public static double[][] multiply(double[][] a, double x) {
+		int m = a.length;
+		int n = a[0].length;
+		double[][] y = new double[m][n];
+		for (int i = 0; i < m; i++) {
+			for (int j = 0; j<n; j++) {
+				y[i][j] = a[i][j] * x;
+			}
+		}
+		return y;
+	}
+
+	public static double[][] abs(double[][] a) {
+		int m = a.length;
+		int n = a[0].length;
+		double[][] y = new double[m][n];
+		for (int i = 0; i < m; i++) {
+			for (int j = 0; j<n; j++) {
+				y[i][j] = Math.abs(a[i][j]);
+			}
+		}
+		return y;
+	}
 
 	// vector-matrix multiplication (y = x^T A)
 	public static double[] multiply(double[] x, double[][] a) {

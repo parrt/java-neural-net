@@ -51,17 +51,17 @@ public class Main {
 			System.out.printf(j+": num correct %d %2.2f%%\n", correct, 100*correct/(float)training.size());
 		}
 
-		Particle gbest = particles[maxi];
-		System.out.println("gbest index is "+maxi+": "+gbest.bestScore);
+		Particle global = particles[maxi];
+		System.out.println("gbest index is "+maxi+": "+global.bestScore);
 
 		for (int i = 0; i<NUM_ITERATIONS; i++) {
 			// v(t+1) = w*v(t) + c1*r1*(pBest(t) - x(t)) + c2*r2*(gBest(t) - x(t))
 			// x(t+1) = x(t) + v(t+1)
-			Network mu = gbest.best;
-			double sigma = 1.0;
 			for (int j = 0; j<NUM_PARTICLES; j++) {
 				Particle p = particles[j];
-//				Network net = new Network(mu, sigma, 784, 15, 10);
+				Network mu = p.best.add(global.best).scale(0.5);
+				Network sigma = p.best.subtract(global.best).abs();
+				Network net = new Network(mu, sigma, 784, 15, 10);
 			}
 		}
 
