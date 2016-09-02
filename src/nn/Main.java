@@ -143,13 +143,12 @@ public class Main {
 	}
 
 	public static void slightlyGuidedRandomSearchOptimizer(List<Image> training) {
-		Network globalBest = startingPosition(100, 784, 30, 10);
-		double globalLowestCost = globalBest.cost(X, onehots);
-		int correct = globalBest.fitness(X, labels);
-		System.out.printf("global lowest cost %3.2f, num correct %d %2.2f%%\n",
-		                  globalLowestCost, correct, 100*correct/(float) training.size());
+		Network globalBest = startingPosition(100, 784, 15, 10);
+		int globalMaxFitness = globalBest.fitness(X, labels);
+		System.out.printf("global num correct %d %2.2f%%\n",
+		                  globalMaxFitness, 100*globalMaxFitness/(float) training.size());
 		Network mu = globalBest;
-		Network sigma = Network.ones(784, 30, 10).scale(1.0);
+		Network sigma = Network.ones(784, 15, 10).scale(1.0);
 
 		double learningRate = 5.5;
 
@@ -157,32 +156,30 @@ public class Main {
 			System.out.println("ITERATION "+i);
 			// find the best location in a generation
 			Network genBest = null;
-			double genLowestCost = Float.MAX_VALUE;
+			int genMaxFitness = 0;
 			for (int j = 0; j<NUM_PARTICLES; j++) {
-				Network pos = new Network(mu, sigma, 784, 30, 10);
-				double cost = pos.cost(X, onehots);
-				correct = pos.fitness(X, labels);
-				System.out.printf("%d: cost=%3.3f, num correct %d %2.2f%%\n",
-				                  j, cost, correct, 100*correct/(float) training.size());
-				if ( cost<genLowestCost ) {
+				Network pos = new Network(mu, sigma, 784, 15, 10);
+				int correct = pos.fitness(X, labels);
+				System.out.printf("%d: num correct %d %2.2f%%\n",
+				                  j, correct, 100*correct/(float) training.size());
+				if ( correct>genMaxFitness ) {
 					genBest = pos;
-					genLowestCost = cost;
+					genMaxFitness = correct;
 				}
 			}
-			System.out.printf("gen lowest cost %3.3f\n", genLowestCost);
+			System.out.printf("gen max fitness %d\n", genMaxFitness);
 			// Update best global particle
-			if ( genLowestCost<globalLowestCost ) {
+			if ( genMaxFitness>globalMaxFitness ) {
 				// only move center if we have improved with this gen
 				Network delta = genBest.subtract(globalBest);
 //				mu = globalBest.add(delta.scale(learningRate));
 				mu = genBest;
 				sigma = delta.abs().scale(1.0);
 				globalBest = genBest;
-				globalLowestCost = genLowestCost;
+				globalMaxFitness = genMaxFitness;
 			}
-			correct = globalBest.fitness(X, labels);
-			System.out.printf("global lowest cost %3.3f, num correct %d %2.2f%%\n",
-			                  globalLowestCost, correct, 100*correct/(float) training.size());
+			System.out.printf("global num correct %d %2.2f%%\n",
+			                  globalMaxFitness, 100*globalMaxFitness/(float) training.size());
 		}
 	}
 

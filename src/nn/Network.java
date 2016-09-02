@@ -229,8 +229,8 @@ public class Network {
 			double[][] w = weights[layer];
 			double[] wapplied = Matrix.multiply(w, activations);
 			double[] output = Vec.add(wapplied, biases[layer]);
-//			activations = reLU(output);
-			activations = sigmoid(output);
+			activations = reLU(output);
+//			activations = sigmoid(output);
 		}
 		return activations;
 	}
