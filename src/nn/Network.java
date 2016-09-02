@@ -229,7 +229,8 @@ public class Network {
 			double[][] w = weights[layer];
 			double[] wapplied = Matrix.multiply(w, activations);
 			double[] output = Vec.add(wapplied, biases[layer]);
-			activations = reLU(output);
+//			activations = reLU(output);
+			activations = sigmoid(output);
 		}
 		return activations;
 	}
@@ -272,6 +273,18 @@ public class Network {
 		double[] re = new double[v.length];
 		for (int i = 0; i<v.length; i++) {
 			re[i] = reLU(v[i]);
+		}
+		return re;
+	}
+
+	public double sigmoid(double v) {
+		return 1.0/(1.0 + Math.exp(-v));
+	}
+
+	public double[] sigmoid(double[] v) {
+		double[] re = new double[v.length];
+		for (int i = 0; i<v.length; i++) {
+			re[i] = sigmoid(v[i]);
 		}
 		return re;
 	}

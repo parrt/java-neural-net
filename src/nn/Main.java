@@ -5,11 +5,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
-	public static final int NUM_PARTICLES = 10;
+	public static final int NUM_PARTICLES = 20;
 	public static final int NUM_ITERATIONS = 100;
 
 	public static final int IMAGE_LEN = 784;
-	public static final int HIDDEN_LAYER_LEN = 15;
+	public static final int HIDDEN_LAYER_LEN = 30;
 	public static final int OUTPUT_LAYER_LEN = 10;
 
 	static double[][] X;
@@ -22,7 +22,7 @@ public class Main {
 //		List<Image> testing = MNISTLoader.loadTestingImages("/Users/parrt/data/mnist");
 //		System.out.printf("Loaded %d testing images\n", testing.size());
 
-		training = training.subList(0, 100);
+		training = training.subList(0, 1000);
 		System.out.printf("Using %d images\n", training.size());
 
 		X = new double[training.size()][];
@@ -35,9 +35,9 @@ public class Main {
 			onehots[i][labels[i]] = 1.0;
 		}
 //		bareBonesParticleSwarmOptimizer(training);
-//		slightlyGuidedRandomSearchOptimizer(training);
+		slightlyGuidedRandomSearchOptimizer(training);
 //		tinySlightlyGuidedRandomSearchOptimizer();
-		gradientDescentFiniteDifference(training);
+//		gradientDescentFiniteDifference(training);
 	}
 
 	/**
@@ -46,7 +46,7 @@ public class Main {
 	public static Network gradientDescentFiniteDifference(List<Image> training) {
 		double EPSILON = 2.22e-16;
 		double h = 0.0001;
-		double eta = 1.5;
+		double eta = 2.5;
 		Network prev_pos = null;
 		Network p = startingPosition(50, IMAGE_LEN, HIDDEN_LAYER_LEN, OUTPUT_LAYER_LEN);
 		int correct = p.fitness(X, labels);
@@ -143,19 +143,15 @@ public class Main {
 	}
 
 	public static void slightlyGuidedRandomSearchOptimizer(List<Image> training) {
-		Network globalBest = new Network(0.0, 1.0, 784, 15, 10);
+		Network globalBest = startingPosition(100, 784, 30, 10);
 		double globalLowestCost = globalBest.cost(X, onehots);
 		int correct = globalBest.fitness(X, labels);
-		int correct2 = globalBest.fitness(X, labels);
-		if ( correct!=correct2) {
-			System.err.println("adsfkjabbcasdsfasdf");
-		}
 		System.out.printf("global lowest cost %3.2f, num correct %d %2.2f%%\n",
 		                  globalLowestCost, correct, 100*correct/(float) training.size());
 		Network mu = globalBest;
-		Network sigma = Network.ones(784, 15, 10).scale(1.0);
+		Network sigma = Network.ones(784, 30, 10).scale(1.0);
 
-		double learningRate = 1.5;
+		double learningRate = 5.5;
 
 		for (int i = 0; i<NUM_ITERATIONS; i++) {
 			System.out.println("ITERATION "+i);
@@ -163,29 +159,29 @@ public class Main {
 			Network genBest = null;
 			double genLowestCost = Float.MAX_VALUE;
 			for (int j = 0; j<NUM_PARTICLES; j++) {
-				Network pos = new Network(mu, sigma, 784, 15, 10);
+				Network pos = new Network(mu, sigma, 784, 30, 10);
 				double cost = pos.cost(X, onehots);
 				correct = pos.fitness(X, labels);
-				System.out.printf("%d: cost=%3.2f, num correct %d %2.2f%%\n",
+				System.out.printf("%d: cost=%3.3f, num correct %d %2.2f%%\n",
 				                  j, cost, correct, 100*correct/(float) training.size());
 				if ( cost<genLowestCost ) {
 					genBest = pos;
 					genLowestCost = cost;
 				}
 			}
-			System.out.printf("gen lowest cost %3.2f\n", genLowestCost);
+			System.out.printf("gen lowest cost %3.3f\n", genLowestCost);
 			// Update best global particle
 			if ( genLowestCost<globalLowestCost ) {
 				// only move center if we have improved with this gen
 				Network delta = genBest.subtract(globalBest);
-				mu = globalBest.add(delta.scale(learningRate));
-//				mu = genBest;
-				sigma = delta.abs();
+//				mu = globalBest.add(delta.scale(learningRate));
+				mu = genBest;
+				sigma = delta.abs().scale(1.0);
 				globalBest = genBest;
 				globalLowestCost = genLowestCost;
 			}
 			correct = globalBest.fitness(X, labels);
-			System.out.printf("global lowest cost %3.2f, num correct %d %2.2f%%\n",
+			System.out.printf("global lowest cost %3.3f, num correct %d %2.2f%%\n",
 			                  globalLowestCost, correct, 100*correct/(float) training.size());
 		}
 	}
