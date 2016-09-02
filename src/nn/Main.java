@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
-	public static final int NUM_PARTICLES = 20;
+	public static final int NUM_PARTICLES = 100;
 	public static final int NUM_ITERATIONS = 100;
 
 	public static final int IMAGE_LEN = 784;
@@ -143,14 +143,14 @@ public class Main {
 	}
 
 	public static void slightlyGuidedRandomSearchOptimizer(List<Image> training) {
-		Network globalBest = startingPosition(100, 784, 15, 10);
+		Network globalBest = startingPosition(20, 784, 15, 10);
 		int globalMaxFitness = globalBest.fitness(X, labels);
 		System.out.printf("global num correct %d %2.2f%%\n",
 		                  globalMaxFitness, 100*globalMaxFitness/(float) training.size());
 		Network mu = globalBest;
 		Network sigma = Network.ones(784, 15, 10).scale(1.0);
 
-		double learningRate = 5.5;
+		double learningRate = 1.0;
 
 		for (int i = 0; i<NUM_ITERATIONS; i++) {
 			System.out.println("ITERATION "+i);
@@ -160,8 +160,8 @@ public class Main {
 			for (int j = 0; j<NUM_PARTICLES; j++) {
 				Network pos = new Network(mu, sigma, 784, 15, 10);
 				int correct = pos.fitness(X, labels);
-				System.out.printf("%d: num correct %d %2.2f%%\n",
-				                  j, correct, 100*correct/(float) training.size());
+//				System.out.printf("%d: num correct %d %2.2f%%\n",
+//				                  j, correct, 100*correct/(float) training.size());
 				if ( correct>genMaxFitness ) {
 					genBest = pos;
 					genMaxFitness = correct;
@@ -172,9 +172,9 @@ public class Main {
 			if ( genMaxFitness>globalMaxFitness ) {
 				// only move center if we have improved with this gen
 				Network delta = genBest.subtract(globalBest);
-//				mu = globalBest.add(delta.scale(learningRate));
+//				mu = genBest.add(delta.scale(learningRate));
 				mu = genBest;
-				sigma = delta.abs().scale(1.0);
+//				sigma = delta.abs().scale(1.0);
 				globalBest = genBest;
 				globalMaxFitness = genMaxFitness;
 			}
