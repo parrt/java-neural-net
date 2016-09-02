@@ -4,9 +4,12 @@ import lib.Matrix;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.function.Function;
 
 public class Network {
+	public static final Random random = new Random();
+
 	public final double[][] biases;    // biases[layer][neuron]
 	public final double[][][] weights; // weights[layer][neuron][neuron-from-prev-layer]
 	public final int[] topology;       // {num input units, hidden layers..., num output layer units]
@@ -77,8 +80,24 @@ public class Network {
 		return v;
 	}
 
+	/** Treat biases and weights as one long vector of parameters.
+	 *  Tweak ith parameter by adding v.
+ 	 */
+
+	public void addToParameter(int i, double v) {
+//		if ( )
+	}
+
+	/** Compute the finite difference for each parameter of this' biases
+	 *  and weights. Compute the gradient (diff) using a batch of samples
+	 *  not all.
+	 */
 	public Network finiteDifference(double h, double[][] X, double[][] onehots) {
-		Network costDiffs = new Network(this.topology);
+		Network diffs = new Network(this.topology);
+		int MINIBATCH = 20;
+		int[] indexes = randomIndexes(MINIBATCH, X.length);
+		X = sample(X, indexes);
+		onehots = sample(onehots, indexes);
 		for (int i = 0; i<topology.length-1; i++) {
 			for (int j = 0; j<biases[i].length; j++) {
 				biases[i][j] -= h;
@@ -87,7 +106,7 @@ public class Network {
 				biases[i][j] += h;
 				double cright = cost(X, onehots);
 				biases[i][j] -= h;
-				costDiffs.biases[i][j] = (cright - cleft)/(2*h);
+				diffs.biases[i][j] = (cright-cleft)/(2*h);
 			}
 			for (int j = 0; j<weights[i].length; j++) {
 				for (int k = 0; k<weights[i][j].length; k++) {
@@ -97,11 +116,76 @@ public class Network {
 					weights[i][j][k] += h;
 					double cright = cost(X, onehots);
 					weights[i][j][k] -= h;
-					costDiffs.weights[i][j][k] = (cright - cleft)/(2*h);
+					diffs.weights[i][j][k] = (cright-cleft)/(2*h);
 				}
 			}
 		}
-		return costDiffs;
+		return diffs;
+	}
+
+	/** Estimate the finite difference at this' current position by
+	 *  computing the change in cost for each of a small sample of
+	 *  X instances. Take the average of those costs as an estimate
+	 *  of the gradient we'd expect from using all X instances.
+	 *  (Stochastic gradient descent).
+	 */
+	public Network finiteDifference2(double h, double[][] X, double[][] onehots) {
+		Network sumOfDiffs = new Network(this.topology);
+		int MINIBATCH = 20;
+		int[] indexes = randomIndexes(MINIBATCH, X.length);
+		X = sample(X, indexes);
+		onehots = sample(onehots, indexes);
+		for (int sample = 0; sample<X.length; sample++) {
+			for (int i = 0; i<topology.length-1; i++) {
+				for (int j = 0; j<biases[i].length; j++) {
+					biases[i][j] -= h;
+					double cleft = cost(X[sample], onehots[sample]);
+					biases[i][j] += h;
+					biases[i][j] += h;
+					double cright = cost(X[sample], onehots[sample]);
+					biases[i][j] -= h;
+					sumOfDiffs.biases[i][j] += (cright-cleft)/(2*h);
+				}
+				for (int j = 0; j<weights[i].length; j++) {
+					for (int k = 0; k<weights[i][j].length; k++) {
+						weights[i][j][k] -= h;
+						double cleft = cost(X[sample], onehots[sample]);
+						weights[i][j][k] += h;
+						weights[i][j][k] += h;
+						double cright = cost(X[sample], onehots[sample]);
+						weights[i][j][k] -= h;
+						sumOfDiffs.weights[i][j][k] += (cright-cleft)/(2*h);
+					}
+				}
+			}
+		}
+		sumOfDiffs.scale(1.0/MINIBATCH); // take average
+		return sumOfDiffs;
+	}
+
+	public int[] randomIndexes(int n, int upperBound) {
+		int[] r = new int[n];
+		for (int i = 0; i<n; i++) {
+			r[i] = random.nextInt(upperBound);
+		}
+		return r;
+	}
+
+	public double[][] sample(double[][] X, int[] indexes) {
+		double[][] r = new double[indexes.length][];
+		for (int i = 0; i<indexes.length; i++) {
+			r[i] = X[indexes[i]];
+		}
+		return r;
+	}
+
+	public double[][] sample(double[][] X, int n) {
+		double[][] r = new double[n][];
+		int j = 0;
+		for (int i = 0; i<n; i++) {
+			r[j++] = X[random.nextInt(X.length)];
+		}
+		return r;
 	}
 
 	public Network abs() {
@@ -167,14 +251,17 @@ public class Network {
 	public double cost(double[][] X, double[][] onehots) {
 		double c = 0.0;
 		for (int i = 0; i<X.length; i++) {
-			double[] x = X[i];
-			double[] output = feedforward(x);
-			double[] predictions = softmax(output);
-			double[] diff = Vec.subtract(predictions, onehots[i]);
-			double norm = Vec.norm(diff);
-			c += norm * norm;
+			c += cost(X[i], onehots[i]);
 		}
-		return c / (2 * X.length); // average cost across X.length exemplars
+		return c / X.length; // average cost across X.length exemplars
+	}
+
+	public double cost(double[] x, double[] onehot) {
+		double[] output = feedforward(x);
+		double[] predictions = softmax(output);
+		double[] diff = Vec.subtract(predictions, onehot);
+		double norm = Vec.norm(diff);
+		return norm * norm;
 	}
 
 	public double reLU(double v) {

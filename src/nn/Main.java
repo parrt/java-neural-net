@@ -22,7 +22,7 @@ public class Main {
 //		List<Image> testing = MNISTLoader.loadTestingImages("/Users/parrt/data/mnist");
 //		System.out.printf("Loaded %d testing images\n", testing.size());
 
-		training = training.subList(0, 20);
+		training = training.subList(0, 100);
 		System.out.printf("Using %d images\n", training.size());
 
 		X = new double[training.size()][];
@@ -44,14 +44,6 @@ public class Main {
 	 * Use a simple gradient descent approach to find weights
 	 */
 	public static Network gradientDescentFiniteDifference(List<Image> training) {
-	/*
-	LEARNING_RATE = 10
-	h = 0.0001
-	PRECISION = 0.0000001 # can't be too small as f(x)-f(xprev) prec is low
-	def f(x): return np.cos(3*np.pi*x) / x
-	x0s = [runif_(.1,1.2), runif_(.1,1.2)] # random starting positions
-	tracex = minimize(f, x0s[0], LEARNING_RATE, h, PRECISION)
-	 */
 		double EPSILON = 2.22e-16;
 		double h = 0.0001;
 		double eta = 1.5;
@@ -61,7 +53,6 @@ public class Main {
 		System.out.printf("starting cost %3.5f, correct %d\n", p.cost(X, onehots), correct);
 		while ( true ) {
 			prev_pos = p;
-//			Collections.shuffle(training);
 			Network finite_diff = p.finiteDifference(h, X, onehots);
 			p = p.subtract(finite_diff.scale(eta));
 			// print "f(%1.12f) = %1.12f" % (x, f(x)),
@@ -70,7 +61,7 @@ public class Main {
 			System.out.printf("cost %3.5f, correct %d, delta %3.7f\n", p.cost(X, onehots), correct, delta);
 			// print ", delta = %1.20f" % delta
 			// stop when small change in vertical but not heading down
-			if ( delta>=0 && Math.abs(delta)<0.000001 ) {
+			if ( delta>=0 && Math.abs(delta)<0.00000001 ) {
 				break;
 			}
 		}
