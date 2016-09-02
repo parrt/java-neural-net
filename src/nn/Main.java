@@ -53,18 +53,21 @@ public class Main {
 	tracex = minimize(f, x0s[0], LEARNING_RATE, h, PRECISION)
 	 */
 		double EPSILON = 2.22e-16;
-		double h = 0.001;
-		double eta = 1.0;
+		double h = 0.0001;
+		double eta = 1.5;
 		Network prev_pos = null;
-		Network p = new Network(0.0, 1.0, IMAGE_LEN, HIDDEN_LAYER_LEN, OUTPUT_LAYER_LEN);
+		Network p = startingPosition(50, IMAGE_LEN, HIDDEN_LAYER_LEN, OUTPUT_LAYER_LEN);
+		int correct = p.fitness(X, labels);
+		System.out.printf("starting cost %3.5f, correct %d\n", p.cost(X, onehots), correct);
 		while ( true ) {
 			prev_pos = p;
+//			Collections.shuffle(training);
 			Network finite_diff = p.finiteDifference(h, X, onehots);
 			p = p.subtract(finite_diff.scale(eta));
 			// print "f(%1.12f) = %1.12f" % (x, f(x)),
 			double delta = p.cost(X, onehots) - prev_pos.cost(X, onehots);
-			int correct = p.fitness(X, labels);
-			System.out.printf("cost %3.5f, correct %d\n", p.cost(X, onehots), correct);
+			correct = p.fitness(X, labels);
+			System.out.printf("cost %3.5f, correct %d, delta %3.7f\n", p.cost(X, onehots), correct, delta);
 			// print ", delta = %1.20f" % delta
 			// stop when small change in vertical but not heading down
 			if ( delta>=0 && Math.abs(delta)<0.000001 ) {
@@ -72,6 +75,20 @@ public class Main {
 			}
 		}
 		return p;
+	}
+
+	public static Network startingPosition(int n, int... topology) {
+		double min = Double.MAX_VALUE;
+		Network minNet = null;
+		for (int j = 0; j<n; j++) {
+			Network net = new Network(0.0, 1.0, topology);
+			double cost = net.cost(X, onehots);
+			if ( cost<min ) {
+				min = cost;
+				minNet = net;
+			}
+		}
+		return minNet;
 	}
 
 	public static void bareBonesParticleSwarmOptimizer(List<Image> training) {
