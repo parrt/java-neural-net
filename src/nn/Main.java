@@ -1,10 +1,11 @@
 package nn;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
-	public static final int NUM_PARTICLES = 20;
+	public static final int NUM_PARTICLES = 10;
 	public static final int NUM_ITERATIONS = 100;
 
 	public static final int IMAGE_LEN = 784;
@@ -34,14 +35,15 @@ public class Main {
 			onehots[i][labels[i]] = 1.0;
 		}
 //		bareBonesParticleSwarmOptimizer(training);
-		slightlyGuidedRandomSearchOptimizer(training);
-//		gradientDescentFiniteDifference(training);
+//		slightlyGuidedRandomSearchOptimizer(training);
+//		tinySlightlyGuidedRandomSearchOptimizer();
+		gradientDescentFiniteDifference(training);
 	}
 
 	/**
 	 * Use a simple gradient descent approach to find weights
 	 */
-	public static void gradientDescentFiniteDifference(List<Image> training) {
+	public static Network gradientDescentFiniteDifference(List<Image> training) {
 	/*
 	LEARNING_RATE = 10
 	h = 0.0001
@@ -50,27 +52,26 @@ public class Main {
 	x0s = [runif_(.1,1.2), runif_(.1,1.2)] # random starting positions
 	tracex = minimize(f, x0s[0], LEARNING_RATE, h, PRECISION)
 	 */
-		/*
-		double h = 0.00001;
+		double EPSILON = 2.22e-16;
+		double h = 0.001;
+		double eta = 1.0;
 		Network prev_pos = null;
 		Network p = new Network(0.0, 1.0, IMAGE_LEN, HIDDEN_LAYER_LEN, OUTPUT_LAYER_LEN);
 		while ( true ) {
 			prev_pos = p;
-			double[] finite_diff = Vec.subtract(Vec.add(p, +h), Vec.add(p, -h));
-			+  p.cost(X,onehots)
-
-				f.apply(vector_scalar_add(x, h))-f.apply(x);    // division by h rolls into learning rate
-			p = vector_scalar_sub(x, eta*finite_diff);                        // decelerates x jump as it flattens out
+			Network finite_diff = p.finiteDifference(h, X, onehots);
+			p = p.subtract(finite_diff.scale(eta));
 			// print "f(%1.12f) = %1.12f" % (x, f(x)),
-			double delta = f.apply(x)-f.apply(prev_x);
+			double delta = p.cost(X, onehots) - prev_pos.cost(X, onehots);
+			int correct = p.fitness(X, labels);
+			System.out.printf("cost %3.5f, correct %d\n", p.cost(X, onehots), correct);
 			// print ", delta = %1.20f" % delta
 			// stop when small change in vertical but not heading down
-			if ( delta>=0 && Math.abs(delta)<precision ) {
+			if ( delta>=0 && Math.abs(delta)<0.000001 ) {
 				break;
 			}
 		}
-		return x;
-		*/
+		return p;
 	}
 
 	public static void bareBonesParticleSwarmOptimizer(List<Image> training) {
@@ -136,22 +137,27 @@ public class Main {
 	public static void slightlyGuidedRandomSearchOptimizer(List<Image> training) {
 		Network globalBest = new Network(0.0, 1.0, 784, 15, 10);
 		double globalLowestCost = globalBest.cost(X, onehots);
+		int correct = globalBest.fitness(X, labels);
+		int correct2 = globalBest.fitness(X, labels);
+		if ( correct!=correct2) {
+			System.err.println("adsfkjabbcasdsfasdf");
+		}
+		System.out.printf("global lowest cost %3.2f, num correct %d %2.2f%%\n",
+		                  globalLowestCost, correct, 100*correct/(float) training.size());
 		Network mu = globalBest;
 		Network sigma = Network.ones(784, 15, 10).scale(1.0);
 
-		double learningRate = 2.0;
+		double learningRate = 1.5;
 
 		for (int i = 0; i<NUM_ITERATIONS; i++) {
 			System.out.println("ITERATION "+i);
 			// find the best location in a generation
-
-			Network genBest = new Network(0.0, 1.0, 784, 15, 10);
-
+			Network genBest = null;
 			double genLowestCost = Float.MAX_VALUE;
 			for (int j = 0; j<NUM_PARTICLES; j++) {
 				Network pos = new Network(mu, sigma, 784, 15, 10);
 				double cost = pos.cost(X, onehots);
-				int correct = pos.fitness(X, labels);
+				correct = pos.fitness(X, labels);
 				System.out.printf("%d: cost=%3.2f, num correct %d %2.2f%%\n",
 				                  j, cost, correct, 100*correct/(float) training.size());
 				if ( cost<genLowestCost ) {
@@ -164,13 +170,77 @@ public class Main {
 			if ( genLowestCost<globalLowestCost ) {
 				// only move center if we have improved with this gen
 				Network delta = genBest.subtract(globalBest);
-//				mu = globalBest.add(delta.scale(learningRate));
-				mu = genBest;
+				mu = globalBest.add(delta.scale(learningRate));
+//				mu = genBest;
 				sigma = delta.abs();
 				globalBest = genBest;
 				globalLowestCost = genLowestCost;
 			}
-			int correct = globalBest.fitness(X, labels);
+			correct = globalBest.fitness(X, labels);
+			System.out.printf("global lowest cost %3.2f, num correct %d %2.2f%%\n",
+			                  globalLowestCost, correct, 100*correct/(float) training.size());
+		}
+	}
+
+	public static void tinySlightlyGuidedRandomSearchOptimizer() {
+		List<Image> training = new ArrayList<>();
+		training.add(new Image(new double[]{0,0,0}, 0));
+		training.add(new Image(new double[]{0,1,0}, 1));
+		training.add(new Image(new double[]{1,0,0}, 1));
+		training.add(new Image(new double[]{1,0,1}, 1));
+		training.add(new Image(new double[]{1,1,1}, 0));
+		double[][] X = new double[training.size()][];
+		int[] labels = new int[training.size()];
+		double[][] onehots = new double[training.size()][];
+		for (int i = 0; i<X.length; i++) {
+			X[i] = training.get(i).data;
+			labels[i] = training.get(i).label;
+			onehots[i] = new double[2];
+			onehots[i][labels[i]] = 1.0;
+		}
+
+		Network globalBest = new Network(0.0, 1.0, 3, 2, 2);
+		double globalLowestCost = globalBest.cost(X, onehots);
+		int correct = globalBest.fitness(X, labels);
+		int correct2 = globalBest.fitness(X, labels);
+		if ( correct!=correct2) {
+			System.err.println("adsfkjabbcasdsfasdf");
+		}
+		System.out.printf("global lowest cost %3.2f, num correct %d %2.2f%%\n",
+		                  globalLowestCost, correct, 100*correct/(float) training.size());
+		Network mu = globalBest;
+		Network sigma = Network.ones(3, 2, 2).scale(1.0);
+
+		double learningRate = 1.0;
+
+		for (int i = 0; i<NUM_ITERATIONS; i++) {
+			System.out.println("ITERATION "+i);
+			// find the best location in a generation
+			Network genBest = null;
+			double genLowestCost = Float.MAX_VALUE;
+			for (int j = 0; j<3; j++) {
+				Network pos = new Network(mu, sigma, 3, 2, 2);
+				double cost = pos.cost(X, onehots);
+				correct = pos.fitness(X, labels);
+				System.out.printf("%d: cost=%3.2f, num correct %d %2.2f%%\n",
+				                  j, cost, correct, 100*correct/(float) training.size());
+				if ( cost<genLowestCost ) {
+					genBest = pos;
+					genLowestCost = cost;
+				}
+			}
+			System.out.printf("gen lowest cost %3.2f\n", genLowestCost);
+			// Update best global particle
+			if ( genLowestCost<globalLowestCost ) {
+				// only move center if we have improved with this gen
+				Network delta = genBest.subtract(globalBest);
+				mu = globalBest.add(delta.scale(learningRate));
+//				mu = genBest;
+				sigma = delta.abs();
+				globalBest = genBest;
+				globalLowestCost = genLowestCost;
+			}
+			correct = globalBest.fitness(X, labels);
 			System.out.printf("global lowest cost %3.2f, num correct %d %2.2f%%\n",
 			                  globalLowestCost, correct, 100*correct/(float) training.size());
 		}

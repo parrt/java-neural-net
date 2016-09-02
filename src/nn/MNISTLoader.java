@@ -1,12 +1,7 @@
 // From https://raw.githubusercontent.com/Kricket/neural/master/src/main/java/kricket/neural/mnist/Loader.java
 package nn;
 
-import com.sun.xml.internal.bind.v2.runtime.unmarshaller.Loader;
-
 import java.io.FileInputStream;
-import java.io.IOException;
-
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -41,14 +36,14 @@ public class MNISTLoader {
 			throw new UnsupportedOperationException("We have " + labels.length + " labels, but " + numImages + " images!");
 
 		int numRows = read4(imgStream);
-		if(numRows != Image.HEIGHT)
+		if(numRows != Image.MNIST_HEIGHT )
 			throw new UnsupportedOperationException("Unsupported image height " + numRows);
 		int numCols = read4(imgStream);
-		if(numCols != Image.WIDTH)
+		if(numCols != Image.MNIST_WIDTH )
 			throw new UnsupportedOperationException("Unsupported image width " + numCols);
 
 		List<Image> images = new ArrayList<>(numImages);
-		final int totalPixels = Image.WIDTH * Image.HEIGHT;
+		final int totalPixels = Image.MNIST_WIDTH* Image.MNIST_HEIGHT;
 
 		for(int i=0; i<numImages; i++) {
 			double[] image = new double[totalPixels];

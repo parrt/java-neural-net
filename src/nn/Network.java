@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.function.Function;
 
 public class Network {
-	public double[][] biases;    // biases[layer][neuron]
-	public double[][][] weights; // weights[layer][neuron][neuron-from-prev-layer]
-	public int[] topology;       // {num input units, hidden layers..., num output layer units]
+	public final double[][] biases;    // biases[layer][neuron]
+	public final double[][][] weights; // weights[layer][neuron][neuron-from-prev-layer]
+	public final int[] topology;       // {num input units, hidden layers..., num output layer units]
 
 	public Network(int ...topology) {
 		this.topology = topology;
@@ -77,9 +77,35 @@ public class Network {
 		return v;
 	}
 
+	public Network finiteDifference(double h, double[][] X, double[][] onehots) {
+		Network costDiffs = new Network(this.topology);
+		for (int i = 0; i<topology.length-1; i++) {
+			for (int j = 0; j<biases[i].length; j++) {
+				biases[i][j] -= h;
+				double cleft = cost(X, onehots);
+				biases[i][j] += h;
+				biases[i][j] += h;
+				double cright = cost(X, onehots);
+				biases[i][j] -= h;
+				costDiffs.biases[i][j] = (cright - cleft)/(2*h);
+			}
+			for (int j = 0; j<weights[i].length; j++) {
+				for (int k = 0; k<weights[i][j].length; k++) {
+					weights[i][j][k] -= h;
+					double cleft = cost(X, onehots);
+					weights[i][j][k] += h;
+					weights[i][j][k] += h;
+					double cright = cost(X, onehots);
+					weights[i][j][k] -= h;
+					costDiffs.weights[i][j][k] = (cright - cleft)/(2*h);
+				}
+			}
+		}
+		return costDiffs;
+	}
+
 	public Network abs() {
 		Network r = new Network(this.topology);
-		r.topology = this.topology;
 		for (int i = 0; i<topology.length-1; i++) {
 			r.biases[i] = Vec.abs(this.biases[i]);
 			r.weights[i] = Matrix.abs(this.weights[i]);
@@ -89,7 +115,6 @@ public class Network {
 
 	public Network scale(double v) {
 		Network r = new Network(this.topology);
-		r.topology = this.topology;
 		for (int i = 0; i<topology.length-1; i++) {
 			r.biases[i] = Vec.scale(this.biases[i], v);
 			r.weights[i] = Matrix.multiply(this.weights[i], v);
@@ -99,7 +124,6 @@ public class Network {
 
 	public Network add(Network other) {
 		Network r = new Network(this.topology);
-		r.topology = this.topology;
 		for (int i = 0; i<topology.length-1; i++) {
 			r.biases[i] = Vec.add(this.biases[i], other.biases[i]);
 			r.weights[i] = Matrix.add(this.weights[i], other.weights[i]);
@@ -109,7 +133,6 @@ public class Network {
 
 	public Network subtract(Network other) {
 		Network r = new Network(this.topology);
-		r.topology = this.topology;
 		for (int i = 0; i<topology.length-1; i++) {
 			r.biases[i] = Vec.subtract(this.biases[i], other.biases[i]);
 			r.weights[i] = Matrix.subtract(this.weights[i], other.weights[i]);
@@ -120,7 +143,8 @@ public class Network {
 	public double[] feedforward(double[] activations) {
 		for (int layer = 0; layer<topology.length-1; layer++) {
 			double[][] w = weights[layer];
-			double[] output = Vec.add(Matrix.multiply(w, activations), biases[layer]);
+			double[] wapplied = Matrix.multiply(w, activations);
+			double[] output = Vec.add(wapplied, biases[layer]);
 			activations = reLU(output);
 		}
 		return activations;
@@ -131,7 +155,8 @@ public class Network {
 		for (int i = 0; i<X.length; i++) {
 			double[] x = X[i];
 			double[] output = feedforward(x);
-			int predicted = argmax(softmax(output));
+			double[] predictions = softmax(output);
+			int predicted = argmax(predictions);
 			if ( predicted==labels[i] ) {
 				correct++;
 			}
@@ -144,12 +169,12 @@ public class Network {
 		for (int i = 0; i<X.length; i++) {
 			double[] x = X[i];
 			double[] output = feedforward(x);
-			double[] activations = softmax(output);
-			double[] diff = Vec.subtract(activations, onehots[i]);
+			double[] predictions = softmax(output);
+			double[] diff = Vec.subtract(predictions, onehots[i]);
 			double norm = Vec.norm(diff);
 			c += norm * norm;
 		}
-		return c;
+		return c / (2 * X.length); // average cost across X.length exemplars
 	}
 
 	public double reLU(double v) {
@@ -182,7 +207,7 @@ public class Network {
 		for (int i = 0; i<x.length; i++) {
 			r[i] = Math.exp(x[i]) / s;
 			if ( Double.isNaN(r[i]) ) {
-				r[i] = 1.0;
+//				r[i] = 1.0;
 //				System.out.println("NAN!!!!!!!!!!!");
 			}
 		}
@@ -196,7 +221,6 @@ public class Network {
 		}
 		return output;
 	}
-
 
 	@Override
 	public String toString() {
@@ -213,7 +237,7 @@ public class Network {
 			buf.append("Layer "+(i+1)+":\n");
 			for (int j = 0; j < weights[i].length; j++) {
 				for (int k = 0; k<weights[i][j].length; k++) {
-					buf.append(String.format(" %3.2f", weights[i][j][k]));
+					buf.append(String.format(" %3.3f", weights[i][j][k]));
 				}
 				buf.append("\n");
 			}

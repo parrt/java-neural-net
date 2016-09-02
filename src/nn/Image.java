@@ -1,7 +1,7 @@
 package nn;
 
 public class Image {
-	public static final int WIDTH = 28, HEIGHT = 28;
+	public static final int MNIST_WIDTH = 28, MNIST_HEIGHT = 28;
 
 	public double[] data;
 	public int label;
